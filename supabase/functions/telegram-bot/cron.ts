@@ -137,7 +137,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
       if (!claimed?.length) continue;
       const first = String(a.customers?.full_name ?? "").split(" ")[0];
       const svc = a.service ?? SERVICE_LABEL[a.kind] ?? "תור";
-      const draft = `היי ${first} 🌸 מזכירה שמחר בשעה ${fmtTime(a.starts_at)} יש לנו ${svc}. מחכה לך! אם משהו משתנה, תכתבי לי.`;
+      const draft = `שלום ${first},\nרציתי להזכיר על התור שלך מחר בשעה ${fmtTime(a.starts_at)}${svc !== "תור" ? ` (${svc})` : ""}.\nאשמח לראותך 🌸 אם יש שינוי, אפשר לעדכן אותי כאן.\n\nגיטי, GB Wigs`;
       const link = waLink(a.customers?.phone, draft);
       await sendTo(null, `📲 נשמה, מחר ב-${fmtTime(a.starts_at)} מגיעה ${a.customers?.full_name} ל${svc} 🌸\nהכנתי לך הודעה מנומסת לשלוח לה בוואטסאפ:\n\n${draft}`, link ? [[{ text: "📲 פתיחה בוואטסאפ", url: link }]] : undefined);
       n++;

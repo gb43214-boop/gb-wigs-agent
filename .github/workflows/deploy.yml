@@ -18,8 +18,8 @@ jobs:
         with:
           version: latest
       - name: Deploy telegram-bot
-        run: supabase functions deploy telegram-bot --project-ref $PROJECT_REF --no-verify-jwt --use-api
+        run: supabase functions deploy telegram-bot --project-ref $PROJECT_REF --no-verify-jwt --use-api --yes
       - name: Deploy legal
-        run: supabase functions deploy legal --project-ref $PROJECT_REF --no-verify-jwt --use-api
+        run: supabase functions deploy legal --project-ref $PROJECT_REF --no-verify-jwt --use-api --yes
       - name: Register Telegram webhook
         run: curl -fsS "https://$PROJECT_REF.supabase.co/functions/v1/telegram-bot?action=setup"

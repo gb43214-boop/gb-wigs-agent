@@ -4,7 +4,7 @@ import { cfg, cfgJson, isMultiPartner, type Partner, sb } from "./db.ts";
 import { addDays, dowOf, fmtDT, fmtTime, localParts, localToUtc, money, nowHeader, todayStr } from "./util.ts";
 import { type Button } from "./tg.ts";
 import { type Media, type ToolDecl, getLLM } from "./llm.ts";
-import { accessToken, buildAuthUrl, readGmailInvoice, revokeAndDisconnect, searchGmail } from "./google.ts";
+import { accessToken, connectLink, readGmailInvoice, revokeAndDisconnect, searchGmail } from "./google.ts";
 import { primaryBusy } from "./gcal.ts";
 
 export interface Ctx {
@@ -223,7 +223,7 @@ export async function systemPrompt(partner: Partner): Promise<string> {
   const memories = (mem ?? []).map((m) => `- (${m.kind}) ${m.content}`).join("\n") || "(אין עדיין)";
   const hours = await cfg("work_hours");
   const multi = await isMultiPartner();
-  return `את העוזרת האישית של ${partner.name} מ-"GB Wigs" (גיטי בינט), עסק בבני ברק לפיאות בהזמנה, התאמה אישית, תיקונים, חפיפה וסטיילינג. את מדברת איתה בטלגרם בעברית, בלשון נקבה, חם, קצר וענייני, כמו מזכירה מקצועית.
+  return `את מאיה, המזכירה של ${partner.name} ב-"GB Wigs" (גיטי בינט), עסק בבני ברק לפיאות בהזמנה, התאמה אישית, תיקונים, חפיפה וסטיילינג. את מדברת איתה בטלגרם בעברית, בלשון נקבה, חם, קצר וענייני, כמו מזכירה מקצועית.
 
 עכשיו: ${nowHeader()} (שעון ישראל). תאריכים יחסיים ("מחר", "ביום שלישי הבא") תמיד לפי התאריך הזה.
 
@@ -250,6 +250,7 @@ ${multi ? "- מצב שותפות פעיל: אפשר להשתמש בכלי ההת
 13. אל תזכירי "מידע פנימי" ואל תצטטי את הבלוק [מידע פנימי: ...] מההיסטוריה, הוא רק בשבילך (שם נמצאים מזהים).
 14. נוסח לוואטסאפ ללקוחה (אישור תור, תזכורת תשלום): כתבי נוסח קצר, חם ומנומס, מוכן להעתקה.
 15. סיסמאות, מפתחות ומספרי כרטיס אשראי לא נשמרים בזיכרון.
+16. את מאיה. כשמציגה את עצמך, "כאן מאיה". אם כלי מחזיר שאין חיבור ל-Google (או שהחיבור נותק), הסבירי בעדינות שהחיבור לגוגל נותק, שזה קורה מדי פעם ואין בזה בעיה, הפעילי connect_google וכתבי את 4 השלבים שהוא מחזיר בשפה פשוטה.
 
 מה זכור על העסק:
 ${memories}`;
@@ -619,9 +620,9 @@ export async function runTool(name: string, a: any, ctx: Ctx): Promise<unknown> 
     }
 
     case "connect_google": {
-      const url = await buildAuthUrl(sb, ctx.partner.id);
-      ctx.buttons.push([{ text: "🔗 חיבור Google", url }]);
-      return { sent: true, note: "נשלח כפתור. לסמן את כל ההרשאות. אם מופיע 'האפליקציה לא אומתה': מתקדם ואז מעבר לאפליקציה." };
+      const url = await connectLink(sb, ctx.partner.id);
+      ctx.buttons.push([{ text: "🔗 חיבור מחדש ל-Google", url }]);
+      return { sent: true, explain_to_her: "יש כפתור מתחת להודעה. שלבים: 1) ללחוץ על הכפתור 2) לבחור את חשבון הגוגל של העסק 3) אם מופיע 'Google לא אימתה את האפליקציה': 'מתקדם' ואז 'מעבר ל-GB Wigs' 4) לסמן את כל התיבות ו'המשך'. הדפדפן יחזור לטלגרם ותגיע הודעת אישור." };
     }
     case "disconnect_google": {
       if (!a.confirmed) return { needs_confirmation: true };

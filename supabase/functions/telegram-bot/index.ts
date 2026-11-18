@@ -8,9 +8,9 @@ import { getLLM, type Media, type Msg } from "./llm.ts";
 import {
   type Ctx, freeTimeText, hardDelete, openBalances, runTool, systemPrompt, toolDeclarations,
 } from "./tools.ts";
-import { runCron } from "./cron.ts";
+import { googleReconnectText, runCron } from "./cron.ts";
 import { calendarSync, ensureCalendar } from "./gcal.ts";
-import { accessToken, buildAuthUrl, handleOAuthCallback } from "./google.ts";
+import { accessToken, buildAuthUrl, connectLink, handleOAuthCallback, verifyConnect } from "./google.ts";
 import { addDays, fmtDay, fmtDT, fmtTime, localParts, localToUtc, money, todayStr } from "./util.ts";
 
 const llm = getLLM();
@@ -98,7 +98,7 @@ const PROMPTS: Record<string, string> = {
   time: "⏱ אין כאן דיווח שעות. אם את צריכה, אפשר להוסיף אחר כך.",
 };
 
-const HELP = `🌸 אני המזכירה של GB Wigs. אפשר לכתוב, להקליט או לצלם.
+const HELP = `🌸 אני מאיה, המזכירה של GB Wigs. אפשר לכתוב, להקליט או לצלם.
 
 לקוחות והזמנות:
 • "תפתחי לקוחה שרה כהן, 050..., חתונה ב-12.3, שיער חום כהה"
@@ -194,10 +194,10 @@ async function showGoogle(ctx: Ctx, force = false) {
   if (token && acc && !force) {
     const hasCal = (acc.scopes ?? "").includes("calendar");
     await send(ctx.chatId, `✅ מחוברת ל-Google (${acc.email ?? "ללא מייל"})\nGmail: קריאה בלבד\nיומן: ${hasCal ? "מחובר, יומן \"GB Wigs\" מסונכרן" : "לא אושר. חברי מחדש וסמני את כל ההרשאות"}`,
-      [[{ text: "🔗 חיבור מחדש", url: await buildAuthUrl(sb, ctx.partner.id) }]]);
+      [[{ text: "🔗 חיבור מחדש", url: await connectLink(sb, ctx.partner.id) }]]);
     return;
   }
-  await send(ctx.chatId, "🔗 לחצי כדי לחבר את Google. סמני את כל ההרשאות.\nאם מופיע \"האפליקציה לא אומתה\": מתקדם ← מעבר לאפליקציה.", [[{ text: "🔗 חיבור Google", url: await buildAuthUrl(sb, ctx.partner.id) }]]);
+  await send(ctx.chatId, googleReconnectText(ctx.partner.name, null).replace(/^[\s\S]*?\n\n/, "🔗 חיבור ל-Google\n\n"), [[{ text: "🔗 חיבור מחדש ל-Google", url: await connectLink(sb, ctx.partner.id) }]]);
 }
 
 async function handleCommand(ctx: Ctx, text: string): Promise<boolean> {
@@ -274,10 +274,10 @@ async function handleMessage(m: any) {
     const code = text.startsWith("/start") ? text.replace("/start", "").trim() : text;
     const linked = code ? await linkWithCode(chatId, code) : null;
     if (linked) {
-      await tg("sendMessage", { chat_id: chatId, text: `היי ${linked.name}! 🎉 חיברתי אותך. אני המזכירה של GB Wigs.\nכתבי /help לדוגמאות, ו-/google כדי לחבר את Gmail והיומן.`, reply_markup: MAIN_KEYBOARD });
+      await tg("sendMessage", { chat_id: chatId, text: `היי ${linked.name}! 🎉 כאן מאיה, המזכירה של GB Wigs. חיברתי אותך.\nכתבי /help לדוגמאות, ו-/google כדי לחבר את Gmail והיומן.`, reply_markup: MAIN_KEYBOARD });
       return;
     }
-    await send(chatId, "היי! אני הבוט הפרטי של GB Wigs 🌸\nשלחי לי את קוד החיבור האישי שלך.");
+    await send(chatId, "היי! אני מאיה, המזכירה הפרטית של GB Wigs 🌸\nשלחי לי את קוד החיבור האישי שלך.");
     return;
   }
 
@@ -285,7 +285,7 @@ async function handleMessage(m: any) {
   if (text === "/start" || text.startsWith("/start ")) {
     const arg = text.replace("/start", "").trim();
     if (arg === "google") { await showGoogle(ctx); return; }
-    await tg("sendMessage", { chat_id: chatId, text: `היי ${partner.name} 🌸 אני כאן. כתבי, הקליטי או צלמי חשבונית.\n/help לדוגמאות.`, reply_markup: MAIN_KEYBOARD });
+    await tg("sendMessage", { chat_id: chatId, text: `היי ${partner.name} 🌸 כאן מאיה. כתבי, הקליטי או צלמי חשבונית.\n/help לדוגמאות.`, reply_markup: MAIN_KEYBOARD });
     return;
   }
   if (m.photo || m.voice || m.audio || m.document) {
@@ -321,6 +321,13 @@ async function notifyAll(text: string) {
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const action = url.searchParams.get("action");
+
+  // כפתור חיבור קבוע: יוצר קישור טרי לגוגל בכל לחיצה
+  if (req.method === "GET" && url.pathname.endsWith("/google/connect")) {
+    const pid = url.searchParams.get("p") ?? "", k = url.searchParams.get("k") ?? "";
+    if (!(await verifyConnect(sb, pid, k))) return backToTelegram();
+    return Response.redirect(await buildAuthUrl(sb, pid), 302);
+  }
 
   // חזרה מ-Google אחרי אישור
   if (req.method === "GET" && url.pathname.endsWith("/gmail/callback")) {

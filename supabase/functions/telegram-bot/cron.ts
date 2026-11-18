@@ -3,6 +3,23 @@ import { allPartners, cfg, cfgJson, type Partner, sb, setCfg } from "./db.ts";
 import { send, type Button } from "./tg.ts";
 import { addDays, fmtTime, localParts, localToUtc, money, todayStr, waLink } from "./util.ts";
 import { calendarSync } from "./gcal.ts";
+import { connectLink } from "./google.ts";
+
+// ───────────── הודעת ניתוק מגוגל ─────────────
+export function googleReconnectText(name: string, email: string | null, nudge = false): string {
+  const acct = email ? `\n2. בוחרים את החשבון ${email}` : "\n2. בוחרים את חשבון הגוגל של העסק";
+  const opening = nudge
+    ? `היי ${name}, כאן מאיה 🌸\nתזכורת קטנה: עדיין אין לי חיבור לגוגל, אז אני לא רואה את היומן ואת החשבוניות במייל.`
+    : `היי ${name}, כאן מאיה 🌸\nהחיבור שלי לגוגל נותק, אז כרגע אני לא רואה את היומן ואת החשבוניות במייל.\nזה קורה מדי פעם כשגוגל מבקשת לאשר מחדש, ואין בזה שום בעיה. תורים שתקבעי בינתיים נשמרים אצלי ויעלו ליומן מיד אחרי החיבור.`;
+  return `${opening}
+
+איך מתחברים מחדש (דקה אחת):
+1. לוחצים על הכפתור "🔗 חיבור מחדש ל-Google" כאן למטה${acct}
+3. אם מופיע "Google לא אימתה את האפליקציה": לוחצים "מתקדם" ואז "מעבר ל-GB Wigs"
+4. מסמנים את כל התיבות ולוחצים "המשך"
+
+זהו! הדפדפן יחזור לכאן ואכתוב לך שהכול מחובר ✅`;
+}
 import { financialSummary, openBalances } from "./tools.ts";
 
 // ───────────── שבת וחג (Hebcal) ─────────────
@@ -60,12 +77,36 @@ export async function runCron(): Promise<Record<string, unknown>> {
   let n = 0;
 
   // 1. תזכורות מתוזמנות (claim לפני שליחה, מונע כפילות בריצות חופפות)
-  const { data: due } = await sb.from("reminders").select("id, partner_id, message").is("sent_at", null).lte("remind_at", now.toISOString()).limit(20);
+  const { data: due } = await sb.from("reminders").select("id, partner_id, message, kind, payload").is("sent_at", null).lte("remind_at", now.toISOString()).limit(20);
   for (const r of due ?? []) {
     const { data: claimed } = await sb.from("reminders").update({ sent_at: now.toISOString() }).eq("id", r.id).is("sent_at", null).select("id");
     if (!claimed?.length) continue;
-    await sendTo(r.partner_id, `⏰ ${r.message}`);
+    if (r.kind === "google_disconnected" && r.partner_id) {
+      const p = (await allPartners()).find((x) => x.id === r.partner_id);
+      if (p?.telegram_chat_id) {
+        await send(p.telegram_chat_id, googleReconnectText(p.name, (r.payload as any)?.email ?? null),
+          [[{ text: "🔗 חיבור מחדש ל-Google", url: await connectLink(sb, p.id) }]]);
+        await setCfg(`google_nudge_${p.id}`, today);
+      }
+    } else {
+      await sendTo(r.partner_id, `⏰ ${r.message}`);
+    }
     n++;
+  }
+
+  // 1ב. עדיין לא מחוברת לגוגל: תזכורת עדינה פעם ב-3 ימים, בשעות היום
+  if (lp.h >= 9 && lp.h < 21 && (await cfg("google_ever_connected")) === "true") {
+    const { data: accs } = await sb.from("gmail_accounts").select("partner_id");
+    const connected = new Set((accs ?? []).map((a) => a.partner_id));
+    for (const p of await allPartners()) {
+      if (connected.has(p.id)) continue;
+      const last = await cfg(`google_nudge_${p.id}`);
+      if (last && last > addDays(today, -3)) continue;
+      await setCfg(`google_nudge_${p.id}`, today);
+      await send(p.telegram_chat_id!, googleReconnectText(p.name, null, true),
+        [[{ text: "🔗 חיבור מחדש ל-Google", url: await connectLink(sb, p.id) }]]);
+      n++;
+    }
   }
 
   // 2. שעה לפני תור

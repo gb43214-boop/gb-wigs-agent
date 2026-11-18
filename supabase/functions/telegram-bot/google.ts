@@ -23,6 +23,29 @@ export async function buildAuthUrl(sb: SupabaseClient, partnerId: string): Promi
   return `https://accounts.google.com/o/oauth2/v2/auth?${q}`;
 }
 
+// ───────────── קישור חיבור קבוע ─────────────
+// כפתור שלא פג: בכל לחיצה הפונקציה יוצרת state חדש ומפנה לגוגל.
+// מוגן בחתימת HMAC על מזהה המשתמשת (המפתח: app_config.cron_secret).
+async function connectKey(sb: SupabaseClient, partnerId: string): Promise<string> {
+  const { data } = await sb.from("app_config").select("value").eq("key", "cron_secret").maybeSingle();
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(data?.value ?? ""), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`connect:${partnerId}`));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
+
+export async function connectLink(sb: SupabaseClient, partnerId: string): Promise<string> {
+  const k = await connectKey(sb, partnerId);
+  return `${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-bot/google/connect?p=${partnerId}&k=${k}`;
+}
+
+export async function verifyConnect(sb: SupabaseClient, partnerId: string, k: string): Promise<boolean> {
+  if (!/^[0-9a-f-]{36}$/.test(partnerId) || !/^[0-9a-f]{32}$/.test(k)) return false;
+  const want = await connectKey(sb, partnerId);
+  let diff = 0;
+  for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ k.charCodeAt(i);
+  return diff === 0;
+}
+
 /** מחליף code בטוקנים ושומר. מחזיר את השותפה ואת המייל. */
 export async function handleOAuthCallback(sb: SupabaseClient, code: string, state: string) {
   const { data: st } = await sb.from("gmail_oauth_states").select("partner_id, created_at").eq("state", state).maybeSingle();
@@ -48,6 +71,12 @@ export async function handleOAuthCallback(sb: SupabaseClient, code: string, stat
     partner_id: st.partner_id, email, refresh_token: tok.refresh_token,
     scopes: tok.scope ?? "", updated_at: new Date().toISOString(),
   });
+  // חיבור חדש: מנקים הודעות ניתוק שעוד לא נשלחו ומאפסים את תזכורת החיבור
+  await sb.from("reminders").delete().eq("partner_id", st.partner_id).eq("kind", "google_disconnected").is("sent_at", null);
+  await sb.from("app_config").upsert([
+    { key: "google_ever_connected", value: "true", updated_at: new Date().toISOString() },
+    { key: `google_nudge_${st.partner_id}`, value: "", updated_at: new Date().toISOString() },
+  ]);
   return { partnerId: st.partner_id as string, email, scopes: (tok.scope ?? "") as string };
 }
 
@@ -69,11 +98,25 @@ export async function accessToken(sb: SupabaseClient, partnerId: string): Promis
   });
   const j = await res.json();
   if (!res.ok) {
-    if (j.error === "invalid_grant") await sb.from("gmail_accounts").delete().eq("partner_id", partnerId);
+    if (j.error === "invalid_grant") await markDisconnected(sb, partnerId);
     return null;
   }
   cache.set(partnerId, { token: j.access_token, exp: Date.now() + (j.expires_in ?? 3000) * 1000 });
   return j.access_token;
+}
+
+/** גוגל ביטלה את ההרשאה: מוחקים את החיבור ומכניסים לתור הודעה לגיטי (נשלחת ב-cron, מכבדת שבת). */
+async function markDisconnected(sb: SupabaseClient, partnerId: string) {
+  const { data: acc } = await sb.from("gmail_accounts").select("email").eq("partner_id", partnerId).maybeSingle();
+  await sb.from("gmail_accounts").delete().eq("partner_id", partnerId);
+  cache.delete(partnerId);
+  const { data: pending } = await sb.from("reminders").select("id").eq("partner_id", partnerId)
+    .eq("kind", "google_disconnected").is("sent_at", null).limit(1);
+  if (pending?.length) return;
+  await sb.from("reminders").insert({
+    partner_id: partnerId, kind: "google_disconnected", message: "google_disconnected",
+    remind_at: new Date().toISOString(), payload: { email: acc?.email ?? null },
+  });
 }
 
 export async function revokeAndDisconnect(sb: SupabaseClient, partnerId: string) {

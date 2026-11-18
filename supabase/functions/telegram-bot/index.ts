@@ -310,8 +310,13 @@ async function setup(): Promise<Response> {
   return Response.json({ webhook, commands, menu, bot: me?.result?.username }, { headers: { "Content-Type": "application/json; charset=utf-8" } });
 }
 
-const html = (body: string, status = 200) =>
-  new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body dir="rtl" style="font-family:sans-serif;text-align:center;padding:3rem">${body}</body>`, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+// Supabase לא מציג HTML מהדומיין שלו (הופך ל-text/plain), לכן אחרי Google מחזירים את הדפדפן לטלגרם
+const backToTelegram = () => Response.redirect(`https://t.me/${BOT_USERNAME().replace(/^@/, "")}`, 302);
+
+async function notifyAll(text: string) {
+  const { data } = await sb.from("partners").select("telegram_chat_id").not("telegram_chat_id", "is", null);
+  for (const p of data ?? []) await send(p.telegram_chat_id, text);
+}
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
@@ -320,7 +325,10 @@ Deno.serve(async (req) => {
   // חזרה מ-Google אחרי אישור
   if (req.method === "GET" && url.pathname.endsWith("/gmail/callback")) {
     try {
-      if (url.searchParams.get("error")) return html("<h2>החיבור בוטל</h2><p>אפשר לחזור לטלגרם ולנסות שוב עם /google</p>", 400);
+      if (url.searchParams.get("error")) {
+        await notifyAll("החיבור ל-Google בוטל. אפשר לנסות שוב עם /google");
+        return backToTelegram();
+      }
       const r = await handleOAuthCallback(sb, url.searchParams.get("code") ?? "", url.searchParams.get("state") ?? "");
       const { data: p } = await sb.from("partners").select("telegram_chat_id").eq("id", r.partnerId).maybeSingle();
       const calendarOk = r.scopes.includes("calendar");
@@ -329,9 +337,10 @@ Deno.serve(async (req) => {
       if (p?.telegram_chat_id) {
         await send(p.telegram_chat_id, `✅ Google מחובר${r.email ? ` (${r.email})` : ""}.\n${calendarOk ? "יצרתי יומן \"GB Wigs\" בגוגל, ותורים יסתנכרנו אליו." : "⚠️ לא אושרה הרשאת היומן. חברי שוב עם /google וסמני את כל ההרשאות."}`);
       }
-      return html("<h2>✅ החיבור הצליח</h2><p>אפשר לחזור לטלגרם.</p>");
+      return backToTelegram();
     } catch (e) {
-      return html(`<h2>משהו השתבש</h2><p>${String((e as Error).message)}</p>`, 400);
+      await notifyAll(`⚠️ החיבור ל-Google נכשל: ${String((e as Error).message).slice(0, 200)}\nאפשר לנסות שוב עם /google`);
+      return backToTelegram();
     }
   }
 

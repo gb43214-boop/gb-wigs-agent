@@ -9,8 +9,8 @@ import { connectLink } from "./google.ts";
 export function googleReconnectText(name: string, email: string | null, nudge = false): string {
   const acct = email ? `\n2. בוחרים את החשבון ${email}` : "\n2. בוחרים את חשבון הגוגל של העסק";
   const opening = nudge
-    ? `היי ${name} נשמה, מאיה פה 🌸\nתזכורת קטנה ועדינה: עדיין אין לי חיבור לגוגל 🙈 אז אני לא רואה את היומן ואת החשבוניות במייל.`
-    : `היי ${name} נשמה שלי, מאיה פה 🌸\nהחיבור שלי לגוגל נותק 🙈 אז כרגע אני לא רואה את היומן ואת החשבוניות במייל.\nאל תדאגי מאמי, זה קורה מדי פעם כשגוגל רוצה שנאשר מחדש, ואין בזה שום בעיה 💖 תורים שתקבעי בינתיים שמורים אצלי ויקפצו ליומן ברגע שנתחבר ✨`;
+    ? `היי ${name} אהובה, מאיה פה 🌸\nתזכורת קטנה ועדינה: עדיין אין לי חיבור לגוגל 🙈 אז אני לא רואה את היומן ואת החשבוניות במייל.`
+    : `היי ${name} אהובה, מאיה פה 🌸\nהחיבור שלי לגוגל נותק 🙈 אז כרגע אני לא רואה את היומן ואת החשבוניות במייל.\nאל תדאגי מאמי, זה קורה מדי פעם כשגוגל רוצה שנאשר מחדש, ואין בזה שום בעיה 💖 תורים שתקבעי בינתיים שמורים אצלי ויקפצו ליומן ברגע שנתחבר ✨`;
   return `${opening}
 
 איך מתחברות מחדש (דקה, באמא שלי 😉):
@@ -89,7 +89,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
         await setCfg(`google_nudge_${p.id}`, today);
       }
     } else {
-      await sendTo(r.partner_id, `⏰ נשמה, תזכורת ממאיה 🌸\n${r.message}`);
+      await sendTo(r.partner_id, `⏰ אהובה, תזכורת ממאיה 🌸\n${r.message}`);
     }
     n++;
   }
@@ -139,7 +139,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
       const svc = a.service ?? SERVICE_LABEL[a.kind] ?? "תור";
       const draft = `שלום ${first},\nרציתי להזכיר על התור שלך מחר בשעה ${fmtTime(a.starts_at)}${svc !== "תור" ? ` (${svc})` : ""}.\nאשמח לראותך 🌸 אם יש שינוי, אפשר לעדכן אותי כאן.\n\nגיטי, GB Wigs`;
       const link = waLink(a.customers?.phone, draft);
-      await sendTo(null, `📲 נשמה, מחר ב-${fmtTime(a.starts_at)} מגיעה ${a.customers?.full_name} ל${svc} 🌸\nהכנתי לך הודעה מנומסת לשלוח לה בוואטסאפ:\n\n${draft}`, link ? [[{ text: "📲 פתיחה בוואטסאפ", url: link }]] : undefined);
+      await sendTo(null, `📲 אהובה, מחר ב-${fmtTime(a.starts_at)} מגיעה ${a.customers?.full_name} ל${svc} 🌸\nהכנתי לך הודעה מנומסת לשלוח לה בוואטסאפ:\n\n${draft}`, link ? [[{ text: "📲 פתיחה בוואטסאפ", url: link }]] : undefined);
       n++;
     }
   }
@@ -166,7 +166,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
     for (const t of tasks ?? []) {
       const { data: claimed } = await sb.from("tasks").update({ reminded_on: today }).eq("id", t.id).select("id");
       if (!claimed?.length) continue;
-      await sendTo(null, `📌 ${t.due_date < today ? "נשמה, זה כבר באיחור 🙈" : "מאמי, זה להיום ✨"}\n${t.title}`, [[
+      await sendTo(null, `📌 ${t.due_date < today ? "אהובה, זה כבר באיחור 🙈" : "מאמי, זה להיום ✨"}\n${t.title}`, [[
         { text: "✅ בוצע", data: `done:${t.id}` }, { text: "מחר", data: `snz:${t.id}:1` }, { text: "שבוע הבא", data: `snz:${t.id}:7` },
       ]]);
       n++;
@@ -183,7 +183,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
         const { data: cs } = await sb.from("customers").select("id, full_name").in("id", late.map((x) => x.customer_id));
         const names = new Map((cs ?? []).map((c) => [c.id, c.full_name]));
         await setCfg("balance_nudge_sent", today);
-        await sendTo(null, "💰 נשמה, כמה לקוחות עוד לא סגרו יתרה אחרי שקיבלו את הפיאה:\n" + late.map((x) => `• ${names.get(x.customer_id)}: ${money(x.balance_due)} (${x.title})`).join("\n") + "\n\nרוצה שאכין לך נוסח עדין ומנומס לוואטסאפ? רק תגידי למי 🌸");
+        await sendTo(null, "💰 אהובה, כמה לקוחות עוד לא סגרו יתרה אחרי שקיבלו את הפיאה:\n" + late.map((x) => `• ${names.get(x.customer_id)}: ${money(x.balance_due)} (${x.title})`).join("\n") + "\n\nרוצה שאכין לך נוסח עדין ומנומס לוואטסאפ? רק תגידי למי 🌸");
         n++;
       }
     }
@@ -197,7 +197,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
     const b = await openBalances();
     const { count } = await sb.from("appointments").select("id", { count: "exact", head: true })
       .in("kind", ["regular", "consultation"]).gte("starts_at", localToUtc(today).toISOString()).lt("starts_at", localToUtc(addDays(today, 7)).toISOString());
-    await sendTo(null, `🌸 שבוע טוב נשמה שלי! הנה הסיכום שלך ✨\n(${from} עד ${to})\n\n💵 הכנסות: ${money(s.income)}\n💸 הוצאות: ${money(s.expenses)}\n📊 נטו: ${money(s.net)}\n\n💰 יתרות פתוחות מלקוחות: ${money(b.total_due)}\n🗓 תורים בשבוע הקרוב: ${count ?? 0}\n\n${Number(s.net) > 0 ? "וואו, את מלכה! 👑🔥" : "שבוע חדש, הצלחות חדשות 💪"}\nאין על גיטי! שיהיה שבוע מדהים 💖🌺`);
+    await sendTo(null, `🌸 שבוע טוב אהובה! הנה הסיכום שלך ✨\n(${from} עד ${to})\n\n💵 הכנסות: ${money(s.income)}\n💸 הוצאות: ${money(s.expenses)}\n📊 נטו: ${money(s.net)}\n\n💰 יתרות פתוחות מלקוחות: ${money(b.total_due)}\n🗓 תורים בשבוע הקרוב: ${count ?? 0}\n\n${Number(s.net) > 0 ? "וואו, את מלכה! 👑🔥" : "שבוע חדש, הצלחות חדשות 💪"}\nאין על גיטי! שיהיה שבוע מדהים 💖🌺`);
     n++;
   }
 
@@ -208,7 +208,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
     const prevEnd = addDays(today, -1), prevStart = prevEnd.slice(0, 8) + "01";
     const s = await financialSummary(prevStart, prevEnd) as any;
     const cats = Object.entries(s.expenses_by_category as Record<string, number>).map(([k, v]) => `• ${k}: ${money(v)}`).join("\n");
-    await sendTo(null, `🧾 נשמה, הסיכום החודשי לרואת החשבון מוכן! ✨ (${prevStart.slice(0, 7)})\n\n💵 הכנסות: ${money(s.income)}\n💸 הוצאות: ${money(s.expenses)}\n📊 נטו: ${money(s.net)}\n\nהוצאות לפי קטגוריה:\n${cats || "אין"}\n\n${s.expenses_missing_invoice_number ? `⚠️ ל-${s.expenses_missing_invoice_number} הוצאות חסר מספר חשבונית 🙈\n` : ""}רוצה שאחפש לך את החשבוניות החסרות ב-Gmail? תכתבי "תמצאי חשבוניות" ואני על זה 🌸💪`);
+    await sendTo(null, `🧾 אהובה, הסיכום החודשי לרואת החשבון מוכן! ✨ (${prevStart.slice(0, 7)})\n\n💵 הכנסות: ${money(s.income)}\n💸 הוצאות: ${money(s.expenses)}\n📊 נטו: ${money(s.net)}\n\nהוצאות לפי קטגוריה:\n${cats || "אין"}\n\n${s.expenses_missing_invoice_number ? `⚠️ ל-${s.expenses_missing_invoice_number} הוצאות חסר מספר חשבונית 🙈\n` : ""}רוצה שאחפש לך את החשבוניות החסרות ב-Gmail? תכתבי "תמצאי חשבוניות" ואני על זה 🌸💪`);
     n++;
   }
 

@@ -40,7 +40,7 @@ async function converse(ctx: Ctx, user: Msg, historyText: string): Promise<strin
       internal.push(`${c.name}(${JSON.stringify(c.args).slice(0, 200)}) → ${JSON.stringify(out).slice(0, 700)}`);
     }
     msgs.push({ role: "user", toolResults: results });
-    if (i === 9) final = r.text || "עשיתי כל מה שיכולתי נשמה 🌸 אם משהו חסר, תבקשי שוב ואני על זה 💪✨";
+    if (i === 9) final = r.text || "עשיתי כל מה שיכולתי אהובה 🌸 אם משהו חסר, תבקשי שוב ואני על זה 💪✨";
   }
   if (!final) final = "סגור מאמי, בוצע! ✅🌸";
   await sb.from("bot_messages").insert([
@@ -72,7 +72,7 @@ async function handleMedia(ctx: Ctx, m: any): Promise<void> {
   }
   if (!fileId) return;
   const file = await downloadFile(fileId);
-  if (!file) { await send(ctx.chatId, "אוי נשמה, לא הצלחתי להוריד את הקובץ מטלגרם 😕 אולי הוא גדול מ-20MB? נסי לשלוח קטן יותר 🌸"); return; }
+  if (!file) { await send(ctx.chatId, "אוי אהובה, לא הצלחתי להוריד את הקובץ מטלגרם 😕 אולי הוא גדול מ-20MB? נסי לשלוח קטן יותר 🌸"); return; }
   const media: Media = { mime, data: toBase64(file.bytes) };
 
   if (kind === "audio") {
@@ -91,14 +91,14 @@ async function handleMedia(ctx: Ctx, m: any): Promise<void> {
 
 // ───────────── פקודות (בלי מודל) ─────────────
 const PROMPTS: Record<string, string> = {
-  expense: "💸 יאללה נשמה, מה רושמות? למשל:\n• \"שילמתי 480 על טופ לייס לשרה כהן\"\n• \"קניתי חומרים ב-220 מהספק X\"\nאו פשוט תצלמי לי את החשבונית / תקליטי, ואני מסדרת הכול 📸🌸",
+  expense: "💸 יאללה אהובה, מה רושמות? למשל:\n• \"שילמתי 480 על טופ לייס לשרה כהן\"\n• \"קניתי חומרים ב-220 מהספק X\"\nאו פשוט תצלמי לי את החשבונית / תקליטי, ואני מסדרת הכול 📸🌸",
   income: "💵 וואו כסף נכנס, אני אוהבת! 🤑✨ מה התקבל? למשל:\n• \"שרה כהן שילמה 1500 מקדמה בביט\"\n• \"קיבלתי יתרה 800 מרחל, חשבונית 1042\"",
   appointment: "🗓 סבבה מאמי, איזה תור קובעות? למשל:\n• \"תור התאמה לרחל כהן ביום שני ב-19:30\"\n• \"ייעוץ והזמנה למירי ביום חמישי ב-11\"\nאו תכתבי \"מתי פנוי?\" ואני אציע לך זמנים 🌷",
-  customer: "👩 איזה כיף, לקוחה חדשה! 🥰 תכתבי לי שם וטלפון, ואם יש גם: תאריך אירוע, סוג וצבע שיער, מידות ראש ומפרט. אפשר גם להקליט, נשמה 🎙🌸",
+  customer: "👩 איזה כיף, לקוחה חדשה! 🥰 תכתבי לי שם וטלפון, ואם יש גם: תאריך אירוע, סוג וצבע שיער, מידות ראש ומפרט. אפשר גם להקליט, אהובה 🎙🌸",
   time: "⏱ דיווח שעות עוד אין לי, כפרה. אם תצטרכי, נוסיף 🌸",
 };
 
-const HELP = `🌸 היי נשמה, זאת מאיה, המזכירה שלך ב-GB Wigs 💖
+const HELP = `🌸 היי אהובה, זאת מאיה, המזכירה שלך ב-GB Wigs 💖
 תכתבי לי, תקליטי או תצלמי, ואני כבר מסדרת הכול ✨
 
 👩 לקוחות והזמנות:
@@ -138,7 +138,7 @@ async function showToday(ctx: Ctx) {
     sb.from("reminders").select("message, remind_at").is("sent_at", null).gte("remind_at", from.toISOString()).lt("remind_at", to.toISOString()).order("remind_at"),
     sb.from("tasks").select("id, title, due_date").neq("status", "done").lte("due_date", today).order("due_date"),
   ]);
-  const lines: string[] = [`🌸 בוקר טוב נשמה! הנה היום שלך, ${fmtDay(today)} ✨`];
+  const lines: string[] = [`🌸 בוקר טוב אהובה! הנה היום שלך, ${fmtDay(today)} ✨`];
   if (ap.data?.length) lines.push("", "🗓 תורים:", ...ap.data.map((a: any) => `• ${a.all_day ? "יום שלם" : fmtTime(a.starts_at) + "-" + fmtTime(a.ends_at)} ${a.title}${a.customers?.phone ? ` · ${a.customers.phone}` : ""}`));
   if (rem.data?.length) lines.push("", "⏰ תזכורות:", ...rem.data.map((r) => `• ${fmtTime(r.remind_at)} ${r.message}`));
   if (tk.data?.length) lines.push("", "📌 משימות:", ...tk.data.map((t) => `• ${t.title}${t.due_date < today ? " (באיחור)" : ""}`));
@@ -160,13 +160,13 @@ async function showWeek(ctx: Ctx) {
   }
   for (const t of tk.data ?? []) byDay.set(t.due_date, [...(byDay.get(t.due_date) ?? []), `• 📌 ${t.title}`]);
   const days = [...byDay.keys()].sort();
-  await send(ctx.chatId, days.length ? "🗓 יאללה, זה השבוע שלך כפרה ✨\n\n" + days.map((d) => `${fmtDay(d)}\n${byDay.get(d)!.join("\n")}`).join("\n\n") : "שבוע פנוי לגמרי נשמה! 🌴 רוצה שנמלא אותו בלקוחות? 😉🌸");
+  await send(ctx.chatId, days.length ? "🗓 יאללה, זה השבוע שלך כפרה ✨\n\n" + days.map((d) => `${fmtDay(d)}\n${byDay.get(d)!.join("\n")}`).join("\n\n") : "שבוע פנוי לגמרי אהובה! 🌴 רוצה שנמלא אותו בלקוחות? 😉🌸");
 }
 
 async function showTasks(ctx: Ctx) {
   const { data } = await sb.from("tasks").select("id, title, due_date, priority").neq("status", "done").order("due_date", { ascending: true, nullsFirst: false }).limit(30);
   if (!data?.length) { await send(ctx.chatId, "אין משימות פתוחות! אין על גיטי 🎉💖"); return; }
-  await send(ctx.chatId, "📋 מה שעוד מחכה לך, נשמה:\n" + data.map((t) => `${t.priority === 1 ? "🔴" : "•"} ${t.title}${t.due_date ? ` (${t.due_date})` : ""}`).join("\n"),
+  await send(ctx.chatId, "📋 מה שעוד מחכה לך, אהובה:\n" + data.map((t) => `${t.priority === 1 ? "🔴" : "•"} ${t.title}${t.due_date ? ` (${t.due_date})` : ""}`).join("\n"),
     data.slice(0, 10).map((t) => [{ text: `✅ ${t.title}`.slice(0, 50), data: `done:${t.id}` }]));
 }
 
@@ -174,7 +174,7 @@ async function showDue(ctx: Ctx) {
   const b = await openBalances();
   if (!b.rows.length) { await send(ctx.chatId, "כולן שילמו, אין יתרות פתוחות! 🎉🤑 על הכיפאק מאמי ✨"); return; }
   const lines = b.rows.map((r) => `• ${r.customer}: ${money(r.due)} מתוך ${money(r.price)} (${r.order})${r.delivered ? " · נמסרה" : ""}`);
-  await send(ctx.chatId, `💰 מי עוד חייבת לך, נשמה:\nסך הכול ${money(b.total_due)}${b.delivered_unpaid ? ` (מתוכן ${money(b.delivered_unpaid)} אחרי מסירה)` : ""}\n\n${lines.join("\n")}\n\nרוצה נוסח עדין לוואטסאפ? תגידי לי למי 🌸`);
+  await send(ctx.chatId, `💰 מי עוד חייבת לך, אהובה:\nסך הכול ${money(b.total_due)}${b.delivered_unpaid ? ` (מתוכן ${money(b.delivered_unpaid)} אחרי מסירה)` : ""}\n\n${lines.join("\n")}\n\nרוצה נוסח עדין לוואטסאפ? תגידי לי למי 🌸`);
 }
 
 async function showOrders(ctx: Ctx) {
@@ -188,7 +188,7 @@ async function showOrders(ctx: Ctx) {
 
 async function showMemory(ctx: Ctx) {
   const { data } = await sb.from("bot_memories").select("kind, content").order("created_at", { ascending: false }).limit(40);
-  await send(ctx.chatId, data?.length ? "🧠 מה שאני זוכרת בשבילך, נשמה:\n" + data.map((m) => `• ${m.content}`).join("\n") + "\n\nמשהו לא נכון? תגידי \"תשכחי ש...\" ואני מוחקת 🌸" : "עוד לא סיפרת לי כלום לזכור, מאמי 🙈 תגידי \"תזכרי ש...\" ואני שומרת לך בלב 💖");
+  await send(ctx.chatId, data?.length ? "🧠 מה שאני זוכרת בשבילך, אהובה:\n" + data.map((m) => `• ${m.content}`).join("\n") + "\n\nמשהו לא נכון? תגידי \"תשכחי ש...\" ואני מוחקת 🌸" : "עוד לא סיפרת לי כלום לזכור, מאמי 🙈 תגידי \"תזכרי ש...\" ואני שומרת לך בלב 💖");
 }
 
 async function showGoogle(ctx: Ctx, force = false) {
@@ -196,11 +196,11 @@ async function showGoogle(ctx: Ctx, force = false) {
   const { data: acc } = await sb.from("gmail_accounts").select("email, scopes").eq("partner_id", ctx.partner.id).maybeSingle();
   if (token && acc && !force) {
     const hasCal = (acc.scopes ?? "").includes("calendar");
-    await send(ctx.chatId, `✅ הכול מחובר לגוגל, נשמה! 🌸 (${acc.email ?? "ללא מייל"})\n📧 Gmail: רק קוראת, לא נוגעת\n🗓 יומן: ${hasCal ? "מחובר, יומן \"GB Wigs\" מסונכרן ✨" : "עוד לא אושר 🙈 תתחברי מחדש ותסמני את כל התיבות"}`,
+    await send(ctx.chatId, `✅ הכול מחובר לגוגל, אהובה! 🌸 (${acc.email ?? "ללא מייל"})\n📧 Gmail: רק קוראת, לא נוגעת\n🗓 יומן: ${hasCal ? "מחובר, יומן \"GB Wigs\" מסונכרן ✨" : "עוד לא אושר 🙈 תתחברי מחדש ותסמני את כל התיבות"}`,
       [[{ text: "🔗 חיבור מחדש", url: await connectLink(sb, ctx.partner.id) }]]);
     return;
   }
-  await send(ctx.chatId, googleReconnectText(ctx.partner.name, null).replace(/^[\s\S]*?\n\n/, "🔗 יאללה נשמה, מחברות אותי לגוגל 🌸\n\n"), [[{ text: "🔗 חיבור מחדש ל-Google", url: await connectLink(sb, ctx.partner.id) }]]);
+  await send(ctx.chatId, googleReconnectText(ctx.partner.name, null).replace(/^[\s\S]*?\n\n/, "🔗 יאללה אהובה, מחברות אותי לגוגל 🌸\n\n"), [[{ text: "🔗 חיבור מחדש ל-Google", url: await connectLink(sb, ctx.partner.id) }]]);
 }
 
 async function handleCommand(ctx: Ctx, text: string): Promise<boolean> {
@@ -250,7 +250,7 @@ async function handleCallback(cb: any) {
     const cnt = (t?.snooze_count ?? 0) + 1;
     await sb.from("tasks").update({ due_date: addDays(todayStr(), Number(b) || 1), snooze_count: cnt, reminded_on: null }).eq("id", a);
     toast = "סבבה, דחיתי 🌸";
-    if (cnt >= 3) await send(chatId, "נשמה, המשימה הזאת כבר נדחתה 3 פעמים 🙈 אולי נפרק אותה לחלקים קטנים, נעביר, או פשוט נוותר? בלי לחץ 💖");
+    if (cnt >= 3) await send(chatId, "אהובה, המשימה הזאת כבר נדחתה 3 פעמים 🙈 אולי נפרק אותה לחלקים קטנים, נעביר, או פשוט נוותר? בלי לחץ 💖");
   } else if (kind === "undo") {
     const r = await hardDelete(a, b) as { deleted?: boolean; error?: string };
     toast = r.deleted ? "ביטלתי ↩️🌸" : (r.error ?? "אוף, לא הצלחתי לבטל 😕");
@@ -261,7 +261,7 @@ async function handleCallback(cb: any) {
     const when = localToUtc(addDays(todayStr(), weeks * 7), "10:00");
     await sb.from("reminders").insert({ partner_id: partner.id, message: `🔁 הגיע הזמן לתאם תור חוזר ל${c?.full_name ?? "הלקוחה"}`, remind_at: when.toISOString(), kind: "rebook" });
     toast = "סגור! 🌸";
-    await send(chatId, `🔁 סגור נשמה! אזכיר לך לתאם תור חוזר ל${c?.full_name ?? "הלקוחה"} ב-${fmtDT(when)} 🌸✨`);
+    await send(chatId, `🔁 סגור אהובה! אזכיר לך לתאם תור חוזר ל${c?.full_name ?? "הלקוחה"} ב-${fmtDT(when)} 🌸✨`);
   } else if (kind === "ok") toast = "👍🌸";
   await tg("answerCallbackQuery", { callback_query_id: cb.id, text: toast });
   try { await tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } }); } catch { /* לא קריטי */ }
@@ -277,7 +277,7 @@ async function handleMessage(m: any) {
     const code = text.startsWith("/start") ? text.replace("/start", "").trim() : text;
     const linked = code ? await linkWithCode(chatId, code) : null;
     if (linked) {
-      await tg("sendMessage", { chat_id: chatId, text: `היי ${linked.name} נשמה שלי! 🎉🌸 כאן מאיה, המזכירה החדשה שלך ב-GB Wigs 💖\nמעכשיו אני מסדרת לך את התורים, הלקוחות והכסף, ואת רק מתרכזת בפיאות 💅✨\n\nתכתבי /help ותראי כל מה שאני יודעת, ו-/google כדי לחבר אותי למייל וליומן 🙌`, reply_markup: MAIN_KEYBOARD });
+      await tg("sendMessage", { chat_id: chatId, text: `היי ${linked.name} אהובה! 🎉🌸 כאן מאיה, המזכירה החדשה שלך ב-GB Wigs 💖\nמעכשיו אני מסדרת לך את התורים, הלקוחות והכסף, ואת רק מתרכזת בפיאות 💅✨\n\nתכתבי /help ותראי כל מה שאני יודעת, ו-/google כדי לחבר אותי למייל וליומן 🙌`, reply_markup: MAIN_KEYBOARD });
       return;
     }
     await send(chatId, "היי בובה! 🌸 אני מאיה, המזכירה הפרטית של GB Wigs 💖\nשלחי לי את קוד החיבור האישי שלך ונתחיל ✨");
@@ -288,7 +288,7 @@ async function handleMessage(m: any) {
   if (text === "/start" || text.startsWith("/start ")) {
     const arg = text.replace("/start", "").trim();
     if (arg === "google") { await showGoogle(ctx); return; }
-    await tg("sendMessage", { chat_id: chatId, text: `היי ${partner.name} נשמה! 🌸 מאיה פה בשבילך 💖\nתכתבי, תקליטי או תצלמי חשבונית, ואני מסדרת ✨\n/help לכל מה שאני יודעת לעשות${Math.random() < 0.3 ? "\n\nואגב... אין על גיטי! 💖" : ""}`, reply_markup: MAIN_KEYBOARD });
+    await tg("sendMessage", { chat_id: chatId, text: `היי ${partner.name} אהובה! 🌸 מאיה פה בשבילך 💖\nתכתבי, תקליטי או תצלמי חשבונית, ואני מסדרת ✨\n/help לכל מה שאני יודעת לעשות${Math.random() < 0.3 ? "\n\nואגב... אין על גיטי! 💖" : ""}`, reply_markup: MAIN_KEYBOARD });
     return;
   }
   if (m.photo || m.voice || m.audio || m.document) {
@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
   if (req.method === "GET" && url.pathname.endsWith("/gmail/callback")) {
     try {
       if (url.searchParams.get("error")) {
-        await notifyAll("אוקיי נשמה, ביטלת את החיבור לגוגל 🌸 מתי שתרצי, תכתבי /google ונתחבר ✨");
+        await notifyAll("אוקיי אהובה, ביטלת את החיבור לגוגל 🌸 מתי שתרצי, תכתבי /google ונתחבר ✨");
         return backToTelegram();
       }
       const r = await handleOAuthCallback(sb, url.searchParams.get("code") ?? "", url.searchParams.get("state") ?? "");
@@ -345,11 +345,11 @@ Deno.serve(async (req) => {
       const token = await accessToken(sb, r.partnerId);
       if (token && calendarOk) { await ensureCalendar(sb, token); await calendarSync(sb); }
       if (p?.telegram_chat_id) {
-        await send(p.telegram_chat_id, `יששש! ✅ מחוברות לגוגל, נשמה שלי 🎉🌸${r.email ? ` (${r.email})` : ""}\n${calendarOk ? "יש לך יומן חדש בגוגל בשם \"GB Wigs\", וכל תור שנקבע יקפוץ אליו לבד ✨📅" : "⚠️ רק היומן לא אושר, מאמי 🙈 תכתבי /google ותסמני את כל התיבות"}`);
+        await send(p.telegram_chat_id, `יששש! ✅ מחוברות לגוגל, אהובה 🎉🌸${r.email ? ` (${r.email})` : ""}\n${calendarOk ? "יש לך יומן חדש בגוגל בשם \"GB Wigs\", וכל תור שנקבע יקפוץ אליו לבד ✨📅" : "⚠️ רק היומן לא אושר, מאמי 🙈 תכתבי /google ותסמני את כל התיבות"}`);
       }
       return backToTelegram();
     } catch (e) {
-      await notifyAll(`אוף נשמה, החיבור לגוגל לא הצליח 😕 בואי ננסה שוב עם /google, זה בטח יעבוד 🌸\n(${String((e as Error).message).slice(0, 200)})`);
+      await notifyAll(`אוף אהובה, החיבור לגוגל לא הצליח 😕 בואי ננסה שוב עם /google, זה בטח יעבוד 🌸\n(${String((e as Error).message).slice(0, 200)})`);
       return backToTelegram();
     }
   }

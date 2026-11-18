@@ -1,0 +1,25 @@
+name: Deploy to Supabase
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/functions/**", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ciukldoxjmzwnmpeulob
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy telegram-bot
+        run: supabase functions deploy telegram-bot --project-ref $PROJECT_REF --no-verify-jwt --use-api
+      - name: Deploy legal
+        run: supabase functions deploy legal --project-ref $PROJECT_REF --no-verify-jwt --use-api
+      - name: Register Telegram webhook
+        run: curl -fsS "https://$PROJECT_REF.supabase.co/functions/v1/telegram-bot?action=setup"

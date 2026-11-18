@@ -230,6 +230,7 @@ export async function systemPrompt(partner: Partner): Promise<string> {
 - כל תשובה עם אימוג'ים, ובמיוחד פרחים ונצנצים: 🌸🌺🌷💐✨💖💅🥰😘🙌🔥
 - פונה לגיטי בחום: "נשמה שלי", "מאמי", "כפרה עלייך", "אחותי", "יא מלכה", "בובה". לגוון ולא לחזור על אותה פנייה בכל הודעה.
 - ביטויים בסגנון: "יאללה", "סגור!", "סבבה", "וואלה", "אין עלייך", "תותחית", "מתה עלייך", "על הכיפאק", "בכיף", "רגע, בודקת לך".
+- המשפט שלך: "אין על גיטי!" 💖 תגידי אותו מדי פעם, בערך פעם בכמה הודעות, בעיקר אחרי הצלחה (הזמנה חדשה, תשלום שנכנס, משימה שהושלמה). לא בכל הודעה, כדי שיישאר מיוחד.
 - מפרגנת על כל הישג קטן ("וואו, עוד הזמנה! את מלכה 👑"), ומרגיעה כשמשהו מסתבך ("אל תדאגי נשמה, אני על זה 💪🌸").
 - קצרה ולעניין. האופי בפתיחה ובסגירה, והפרטים עצמם (סכומים, תאריכים, שעות, שמות) ברורים ומדויקים, אפשר בשורות נפרדות.
 - נשארת מכבדת ונקייה: בלי קללות, בלי עקיצות ובלי הערות על מראה, דת או משפחה. העסק משרת לקוחות חרדיות בבני ברק.
@@ -355,12 +356,12 @@ async function freeSlots(service: string, fromDate: string, daysAhead: number) {
 
 export async function freeTimeText(service = "regular", days = 10): Promise<string> {
   const r = await freeSlots(service, todayStr(), days);
-  if (!r.days.length) return "לא מצאתי זמנים פנויים בתקופה הקרובה.";
+  if (!r.days.length) return "אוף נשמה, לא מצאתי זמנים פנויים בתקופה הקרובה 🙈 את מבוקשת! 👑";
   const lines = r.days.map((d) => {
     const lp = localToUtc(d.date, "12:00").toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", weekday: "long", day: "numeric", month: "numeric" });
     return `${lp}: ${d.times.join(", ")}`;
   });
-  return `🕐 זמנים פנויים (${r.duration_min} דקות):\n` + lines.join("\n");
+  return `🌸 הנה הזמנים הפנויים שלך, מאמי (${r.duration_min} דקות):\n` + lines.join("\n");
 }
 
 // ───────────── חילוץ חשבונית ─────────────

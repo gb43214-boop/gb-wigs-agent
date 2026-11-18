@@ -9,16 +9,16 @@ import { connectLink } from "./google.ts";
 export function googleReconnectText(name: string, email: string | null, nudge = false): string {
   const acct = email ? `\n2. בוחרים את החשבון ${email}` : "\n2. בוחרים את חשבון הגוגל של העסק";
   const opening = nudge
-    ? `היי ${name}, כאן מאיה 🌸\nתזכורת קטנה: עדיין אין לי חיבור לגוגל, אז אני לא רואה את היומן ואת החשבוניות במייל.`
-    : `היי ${name}, כאן מאיה 🌸\nהחיבור שלי לגוגל נותק, אז כרגע אני לא רואה את היומן ואת החשבוניות במייל.\nזה קורה מדי פעם כשגוגל מבקשת לאשר מחדש, ואין בזה שום בעיה. תורים שתקבעי בינתיים נשמרים אצלי ויעלו ליומן מיד אחרי החיבור.`;
+    ? `היי ${name} נשמה, מאיה פה 🌸\nתזכורת קטנה ועדינה: עדיין אין לי חיבור לגוגל 🙈 אז אני לא רואה את היומן ואת החשבוניות במייל.`
+    : `היי ${name} נשמה שלי, מאיה פה 🌸\nהחיבור שלי לגוגל נותק 🙈 אז כרגע אני לא רואה את היומן ואת החשבוניות במייל.\nאל תדאגי מאמי, זה קורה מדי פעם כשגוגל רוצה שנאשר מחדש, ואין בזה שום בעיה 💖 תורים שתקבעי בינתיים שמורים אצלי ויקפצו ליומן ברגע שנתחבר ✨`;
   return `${opening}
 
-איך מתחברים מחדש (דקה אחת):
+איך מתחברות מחדש (דקה, באמא שלי 😉):
 1. לוחצים על הכפתור "🔗 חיבור מחדש ל-Google" כאן למטה${acct}
 3. אם מופיע "Google לא אימתה את האפליקציה": לוחצים "מתקדם" ואז "מעבר ל-GB Wigs"
 4. מסמנים את כל התיבות ולוחצים "המשך"
 
-זהו! הדפדפן יחזור לכאן ואכתוב לך שהכול מחובר ✅`;
+וזהו! הדפדפן יחזור לכאן ואני אכתוב לך שהכול מחובר ✅🎉 את תותחית 💪🌸`;
 }
 import { financialSummary, openBalances } from "./tools.ts";
 
@@ -89,7 +89,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
         await setCfg(`google_nudge_${p.id}`, today);
       }
     } else {
-      await sendTo(r.partner_id, `⏰ ${r.message}`);
+      await sendTo(r.partner_id, `⏰ נשמה, תזכורת ממאיה 🌸\n${r.message}`);
     }
     n++;
   }
@@ -119,10 +119,10 @@ export async function runCron(): Promise<Record<string, unknown>> {
     let extra = "";
     if (a.customer_id) {
       const { data: f } = await sb.from("customer_financials").select("total_due").eq("customer_id", a.customer_id).maybeSingle();
-      if (f && Number(f.total_due) > 0) extra = `\n💰 יתרה פתוחה: ${money(f.total_due)}`;
+      if (f && Number(f.total_due) > 0) extra = `\n💰 שימי לב, יש לה יתרה פתוחה: ${money(f.total_due)}`;
     }
     const mins = Math.max(Math.round((new Date(a.starts_at).getTime() - now.getTime()) / 60000), 1);
-    await sendTo(null, `🗓 בעוד ${mins} דקות (${fmtTime(a.starts_at)}): ${a.title}${a.customers?.phone ? `\n📞 ${a.customers.phone}` : ""}${extra}${a.notes ? `\n📝 ${a.notes}` : ""}`);
+    await sendTo(null, `🗓 מאמי, בעוד ${mins} דקות (${fmtTime(a.starts_at)}) יש לך ${a.title} ✨${a.customers?.phone ? `\n📞 ${a.customers.phone}` : ""}${extra}${a.notes ? `\n📝 ${a.notes}` : ""}`);
     n++;
   }
 
@@ -139,7 +139,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
       const svc = a.service ?? SERVICE_LABEL[a.kind] ?? "תור";
       const draft = `היי ${first} 🌸 מזכירה שמחר בשעה ${fmtTime(a.starts_at)} יש לנו ${svc}. מחכה לך! אם משהו משתנה, תכתבי לי.`;
       const link = waLink(a.customers?.phone, draft);
-      await sendTo(null, `📲 מחר ב-${fmtTime(a.starts_at)}: ${a.customers?.full_name}, ${svc}\n\nנוסח לוואטסאפ ללקוחה:\n${draft}`, link ? [[{ text: "📲 פתיחה בוואטסאפ", url: link }]] : undefined);
+      await sendTo(null, `📲 נשמה, מחר ב-${fmtTime(a.starts_at)} מגיעה ${a.customers?.full_name} ל${svc} 🌸\nהכנתי לך הודעה מנומסת לשלוח לה בוואטסאפ:\n\n${draft}`, link ? [[{ text: "📲 פתיחה בוואטסאפ", url: link }]] : undefined);
       n++;
     }
   }
@@ -152,9 +152,9 @@ export async function runCron(): Promise<Record<string, unknown>> {
     for (const a of done ?? []) {
       const { data: claimed } = await sb.from("appointments").update({ followup_sent: true }).eq("id", a.id).eq("followup_sent", false).select("id");
       if (!claimed?.length) continue;
-      await sendTo(null, `✅ ${a.title} הסתיים. ספרי לי מה נעשה ואשמור בהיסטוריה של הלקוחה (ואם שולמה, כמה).\nלתזכר אותך לתאם תור חוזר?`, [[
+      await sendTo(null, `✅ ${a.title} הסתיים, ${Math.random() < 0.3 ? "אין על גיטי!" : "כל הכבוד מלכה!"} 👑\nספרי לי מה עשית ואשמור לה בהיסטוריה (ואם שילמה, כמה) 🌸\nלתזכר אותך לתאם איתה תור חוזר?`, [[
         { text: "🔁 4 שבועות", data: `rb:${a.customer_id}:4` }, { text: "🔁 6 שבועות", data: `rb:${a.customer_id}:6` }, { text: "🔁 8 שבועות", data: `rb:${a.customer_id}:8` },
-      ], [{ text: "👍 לא צריך", data: "ok" }]]);
+      ], [{ text: "👍 לא צריך, תודה", data: "ok" }]]);
       n++;
     }
   }
@@ -166,7 +166,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
     for (const t of tasks ?? []) {
       const { data: claimed } = await sb.from("tasks").update({ reminded_on: today }).eq("id", t.id).select("id");
       if (!claimed?.length) continue;
-      await sendTo(null, `📌 ${t.due_date < today ? "באיחור" : "להיום"}: ${t.title}`, [[
+      await sendTo(null, `📌 ${t.due_date < today ? "נשמה, זה כבר באיחור 🙈" : "מאמי, זה להיום ✨"}\n${t.title}`, [[
         { text: "✅ בוצע", data: `done:${t.id}` }, { text: "מחר", data: `snz:${t.id}:1` }, { text: "שבוע הבא", data: `snz:${t.id}:7` },
       ]]);
       n++;
@@ -183,7 +183,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
         const { data: cs } = await sb.from("customers").select("id, full_name").in("id", late.map((x) => x.customer_id));
         const names = new Map((cs ?? []).map((c) => [c.id, c.full_name]));
         await setCfg("balance_nudge_sent", today);
-        await sendTo(null, "💰 יתרות שעדיין לא שולמו אחרי מסירה:\n" + late.map((x) => `• ${names.get(x.customer_id)}: ${money(x.balance_due)} (${x.title})`).join("\n") + "\n\nרוצה נוסח לוואטסאפ לתזכורת תשלום? כתבי לי למי.");
+        await sendTo(null, "💰 נשמה, כמה לקוחות עוד לא סגרו יתרה אחרי שקיבלו את הפיאה:\n" + late.map((x) => `• ${names.get(x.customer_id)}: ${money(x.balance_due)} (${x.title})`).join("\n") + "\n\nרוצה שאכין לך נוסח עדין ומנומס לוואטסאפ? רק תגידי למי 🌸");
         n++;
       }
     }
@@ -197,7 +197,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
     const b = await openBalances();
     const { count } = await sb.from("appointments").select("id", { count: "exact", head: true })
       .in("kind", ["regular", "consultation"]).gte("starts_at", localToUtc(today).toISOString()).lt("starts_at", localToUtc(addDays(today, 7)).toISOString());
-    await sendTo(null, `📊 סיכום שבועי (${from} עד ${to})\nהכנסות: ${money(s.income)}\nהוצאות: ${money(s.expenses)}\nנטו: ${money(s.net)}\n\n💰 יתרות פתוחות מלקוחות: ${money(b.total_due)}\n🗓 תורים השבוע הקרוב: ${count ?? 0}\n\nשבוע טוב! 🌸`);
+    await sendTo(null, `🌸 שבוע טוב נשמה שלי! הנה הסיכום שלך ✨\n(${from} עד ${to})\n\n💵 הכנסות: ${money(s.income)}\n💸 הוצאות: ${money(s.expenses)}\n📊 נטו: ${money(s.net)}\n\n💰 יתרות פתוחות מלקוחות: ${money(b.total_due)}\n🗓 תורים בשבוע הקרוב: ${count ?? 0}\n\n${Number(s.net) > 0 ? "וואו, את מלכה! 👑🔥" : "שבוע חדש, הצלחות חדשות 💪"}\nאין על גיטי! שיהיה שבוע מדהים 💖🌺`);
     n++;
   }
 
@@ -208,7 +208,7 @@ export async function runCron(): Promise<Record<string, unknown>> {
     const prevEnd = addDays(today, -1), prevStart = prevEnd.slice(0, 8) + "01";
     const s = await financialSummary(prevStart, prevEnd) as any;
     const cats = Object.entries(s.expenses_by_category as Record<string, number>).map(([k, v]) => `• ${k}: ${money(v)}`).join("\n");
-    await sendTo(null, `🧾 סיכום חודשי לרואת החשבון (${prevStart.slice(0, 7)})\nהכנסות: ${money(s.income)}\nהוצאות: ${money(s.expenses)}\nנטו: ${money(s.net)}\n\nהוצאות לפי קטגוריה:\n${cats || "אין"}\n\n${s.expenses_missing_invoice_number ? `⚠️ ל-${s.expenses_missing_invoice_number} הוצאות חסר מספר חשבונית.\n` : ""}רוצה שאמצא חשבוניות חסרות ב-Gmail? כתבי "תמצאי חשבוניות".`);
+    await sendTo(null, `🧾 נשמה, הסיכום החודשי לרואת החשבון מוכן! ✨ (${prevStart.slice(0, 7)})\n\n💵 הכנסות: ${money(s.income)}\n💸 הוצאות: ${money(s.expenses)}\n📊 נטו: ${money(s.net)}\n\nהוצאות לפי קטגוריה:\n${cats || "אין"}\n\n${s.expenses_missing_invoice_number ? `⚠️ ל-${s.expenses_missing_invoice_number} הוצאות חסר מספר חשבונית 🙈\n` : ""}רוצה שאחפש לך את החשבוניות החסרות ב-Gmail? תכתבי "תמצאי חשבוניות" ואני על זה 🌸💪`);
     n++;
   }
 
